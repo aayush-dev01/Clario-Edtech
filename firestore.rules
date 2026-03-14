@@ -27,6 +27,12 @@ service cloud.firestore {
       allow update: if isSessionParticipant();
     }
 
+    match /sessions/{sessionId}/{document=**} {
+      allow read, write: if isSignedIn() &&
+        (get(/databases/$(database)/documents/sessions/$(sessionId)).data.studentId == request.auth.uid ||
+          get(/databases/$(database)/documents/sessions/$(sessionId)).data.tutorId == request.auth.uid);
+    }
+
     match /ratings/{ratingId} {
       allow read: if isSignedIn();
       allow create, update: if isSignedIn() && request.resource.data.raterId == request.auth.uid;

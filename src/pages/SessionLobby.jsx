@@ -27,7 +27,10 @@ export default function SessionLobby({ user }) {
     getUserById(otherId).then(setOtherUser);
   }, [session, user?.uid]);
 
-  const canJoin = session && (session.status === 'accepted' || session.status === 'in_progress');
+  const status = session?.status || 'pending';
+  const canJoin = status === 'accepted' || status === 'in_progress';
+  const isCompleted = status === 'completed';
+  const isRejected = status === 'rejected';
   const isTutor = user?.uid === session?.tutorId;
 
   const joinLink = useMemo(() => {
@@ -36,7 +39,13 @@ export default function SessionLobby({ user }) {
   }, [sessionId]);
 
   const handleJoin = async () => {
-    if (!canJoin) return;
+    if (isCompleted) {
+      navigate(isTutor ? '/tutor/dashboard' : `/session/complete/${sessionId}`);
+      return;
+    }
+
+    if (isRejected || !canJoin) return;
+
     if (isTutor && session.status === 'accepted') {
       await startSession(sessionId);
     }
@@ -69,13 +78,29 @@ export default function SessionLobby({ user }) {
     );
   }
 
+  const ctaLabel = isCompleted
+    ? isTutor
+      ? 'Back to dashboard'
+      : 'View session summary'
+    : canJoin
+      ? 'Join video call'
+      : isRejected
+        ? 'Session unavailable'
+        : 'Waiting for acceptance';
+
+  const joinFlowDescription = isCompleted
+    ? 'This session has already ended. Use the action on the right to return to the right post-session screen.'
+    : isRejected
+      ? 'This request was not accepted, so the live room is no longer available.'
+      : 'Share the room link if needed. Once the session is accepted, both devices will open the same in-site WebRTC room.';
+
   return (
     <PageShell>
       <PageHero
         eyebrow="Session lobby"
         title={session.skill}
         description="This lobby reflects live session status. Once accepted, both participants can join the same room from separate devices."
-        aside={<StatusBadge tone={canJoin ? 'cyan' : 'default'}>{session.status.replace('_', ' ')}</StatusBadge>}
+        aside={<StatusBadge tone={canJoin ? 'cyan' : isCompleted ? 'teal' : 'default'}>{status.replace('_', ' ')}</StatusBadge>}
       />
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -84,11 +109,11 @@ export default function SessionLobby({ user }) {
           <div className="mt-6 space-y-4">
             <div className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4">
               <p className="text-sm uppercase tracking-[0.28em] text-cyan/72">With</p>
-              <p className="mt-2 text-lg text-white">{otherUser?.displayName || 'Loading...'}</p>
+              <p className="mt-2 text-lg text-white">{otherUser?.displayName || otherUser?.name || 'Loading...'}</p>
             </div>
             <div className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4">
               <p className="text-sm uppercase tracking-[0.28em] text-cyan/72">Join flow</p>
-              <p className="mt-2 leading-7 text-white/66">Share the room link if needed. The tutor can start the session, and both devices will resolve to the same Jitsi room id.</p>
+              <p className="mt-2 leading-7 text-white/66">{joinFlowDescription}</p>
             </div>
           </div>
         </GlassPanel>
@@ -102,8 +127,8 @@ export default function SessionLobby({ user }) {
           </div>
 
           <div className="mt-6 flex flex-wrap gap-3">
-            <PrimaryButton onClick={handleJoin} disabled={!canJoin}>
-              {canJoin ? 'Join video call' : 'Waiting for acceptance'}
+            <PrimaryButton onClick={handleJoin} disabled={!canJoin && !isCompleted}>
+              {ctaLabel}
             </PrimaryButton>
             <SecondaryButton onClick={handleCopy}>{copyState ? 'Link copied' : 'Copy join link'}</SecondaryButton>
           </div>
@@ -112,3 +137,4 @@ export default function SessionLobby({ user }) {
     </PageShell>
   );
 }
+
