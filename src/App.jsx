@@ -164,7 +164,7 @@ function App() {
             }
           />
           <Route
-            path="settings"
+            path="profile"
             element={
               <ProtectedRoute user={user} userProfile={userProfile}>
                 <Settings userProfile={userProfile} />

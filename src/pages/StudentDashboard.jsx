@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import SkillMap from '../components/SkillMap';
 import { GlassPanel, PageHero, PageShell, PrimaryButton, StatusBadge } from '../components/AppShell';
 import { subscribeSessionsForStudent } from '../services/sessionService';
@@ -60,9 +61,27 @@ export default function StudentDashboard({ user, userProfile }) {
               </Link>
             </p>
           ) : (
-            <div className="space-y-4">
+            <motion.div 
+              initial="hidden" 
+              animate="show" 
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 }
+                }
+              }}
+              className="space-y-4"
+            >
               {upcoming.map((session) => (
-                <div key={session.id} className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4">
+                <motion.div 
+                  key={session.id} 
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 }
+                  }}
+                  className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4"
+                >
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
                       <p className="text-lg font-semibold text-white">{session.skill}</p>
@@ -77,9 +96,9 @@ export default function StudentDashboard({ user, userProfile }) {
                       </Link>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </GlassPanel>
 
@@ -91,9 +110,27 @@ export default function StudentDashboard({ user, userProfile }) {
           {recent.length === 0 ? (
             <p className="text-white/62">No past sessions yet.</p>
           ) : (
-            <div className="space-y-4">
+            <motion.div 
+              initial="hidden" 
+              animate="show" 
+              variants={{
+                hidden: { opacity: 0 },
+                show: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.1 }
+                }
+              }}
+              className="space-y-4"
+            >
               {recent.map((session) => (
-                <div key={session.id} className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4">
+                <motion.div 
+                  key={session.id} 
+                  variants={{
+                    hidden: { opacity: 0, y: 10 },
+                    show: { opacity: 1, y: 0 }
+                  }}
+                  className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4"
+                >
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-lg font-semibold text-white">{session.skill}</p>
@@ -103,9 +140,9 @@ export default function StudentDashboard({ user, userProfile }) {
                       Rate
                     </Link>
                   </div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </GlassPanel>
       </div>

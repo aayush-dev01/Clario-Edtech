@@ -1,10 +1,17 @@
+import { motion } from 'framer-motion';
+
 export function PageShell({ children, className = '' }) {
   return (
-    <div className={`relative min-h-screen overflow-hidden px-6 py-8 md:px-10 ${className}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className={`relative min-h-screen overflow-hidden px-6 py-8 md:px-10 ${className}`}
+    >
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(0,229,255,0.12),_transparent_24%),radial-gradient(circle_at_top_right,_rgba(111,124,255,0.16),_transparent_28%),linear-gradient(180deg,_rgba(6,16,30,0.25),_rgba(6,16,30,0.92))]" />
       <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:radial-gradient(circle_at_center,black_45%,transparent_88%)]" />
       <div className="relative z-10 mx-auto max-w-7xl">{children}</div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -29,9 +36,15 @@ export function PageHero({ eyebrow, title, description, actions, aside }) {
 
 export function GlassPanel({ children, className = '' }) {
   return (
-    <div className={`rounded-[1.8rem] border border-white/10 bg-white/6 p-6 shadow-[0_24px_80px_rgba(4,10,20,0.24)] backdrop-blur-xl ${className}`}>
+    <motion.div 
+      initial={{ opacity: 0, y: 15 }} 
+      whileInView={{ opacity: 1, y: 0 }} 
+      viewport={{ once: true, margin: "-50px" }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className={`rounded-[1.8rem] border border-white/10 bg-white/6 p-6 shadow-[0_24px_80px_rgba(4,10,20,0.24)] backdrop-blur-xl ${className}`}
+    >
       {children}
-    </div>
+    </motion.div>
   );
 }
 
@@ -52,22 +65,26 @@ export function StatusBadge({ children, tone = 'default' }) {
 
 export function PrimaryButton({ children, className = '', ...props }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
       {...props}
-      className={`rounded-[1.1rem] bg-cyan px-5 py-3 font-semibold text-navy shadow-[0_18px_50px_rgba(0,229,255,0.2)] transition hover:-translate-y-0.5 hover:bg-[#8df3ff] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`rounded-[1.1rem] bg-cyan px-5 py-3 font-semibold text-navy shadow-[0_18px_50px_rgba(0,229,255,0.2)] transition-colors hover:bg-[#8df3ff] disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }
 
 export function SecondaryButton({ children, className = '', ...props }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.02, y: -2 }}
+      whileTap={{ scale: 0.98 }}
       {...props}
-      className={`rounded-[1.1rem] border border-white/14 bg-white/6 px-5 py-3 font-medium text-white/86 backdrop-blur-xl transition hover:border-cyan/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`rounded-[1.1rem] border border-white/14 bg-white/6 px-5 py-3 font-medium text-white/86 backdrop-blur-xl transition-colors hover:border-cyan/30 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {children}
-    </button>
+    </motion.button>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { GlassPanel, PageHero, PageShell, StatusBadge } from '../components/AppShell';
 import SkillMap from '../components/SkillMap';
 import { getRatingsForTutor } from '../services/ratingService';
@@ -93,9 +94,27 @@ export default function FindSkills() {
         </div>
       </GlassPanel>
 
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+      <motion.div 
+        initial="hidden" 
+        animate="show" 
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.1 }
+          }
+        }}
+        className="grid gap-6 md:grid-cols-2 xl:grid-cols-3"
+      >
         {filtered.map((tutor) => (
-          <GlassPanel key={tutor.id} className="premium-panel">
+          <motion.div 
+            key={tutor.id} 
+            variants={{
+              hidden: { opacity: 0, scale: 0.95, y: 10 },
+              show: { opacity: 1, scale: 1, y: 0 }
+            }}
+          >
+            <GlassPanel className="premium-panel h-full flex flex-col justify-between">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-xl font-semibold text-white">{tutor.displayName}</h3>
@@ -126,8 +145,9 @@ export default function FindSkills() {
               View profile
             </Link>
           </GlassPanel>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {filtered.length === 0 ? (
         <GlassPanel className="mt-6 py-14 text-center">
