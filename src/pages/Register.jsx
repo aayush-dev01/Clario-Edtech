@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GlassPanel, PageShell, PrimaryButton } from '../components/AppShell';
-import { register } from '../services/authService';
+import { getAuthErrorMessage, register } from '../services/authService';
 
 export default function Register() {
   const [email, setEmail] = useState('');
@@ -20,7 +20,7 @@ export default function Register() {
       await register(email, password, displayName, role);
       navigate(role === 'tutor' ? '/tutor/dashboard' : '/student/dashboard');
     } catch (err) {
-      setError(err.message || 'Registration failed.');
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }

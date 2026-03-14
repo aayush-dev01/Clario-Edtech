@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthChange, getUserProfile, getCachedProfile } from './services/authService';
+import { onAuthChange, getUserProfile, getCachedProfile, getPendingRole } from './services/authService';
 import Layout from './components/Layout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
@@ -73,7 +73,7 @@ function App() {
     }
   };
 
-  const resolvedRole = userProfile?.role || getCachedProfile()?.role || 'student';
+  const resolvedRole = userProfile?.role || getCachedProfile()?.role || getPendingRole(user?.uid) || 'student';
 
   if (loading) {
     return (

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GlassPanel, PageShell, PrimaryButton } from '../components/AppShell';
-import { login } from '../services/authService';
+import { getAuthErrorMessage, login } from '../services/authService';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,7 +18,7 @@ export default function Login() {
       await login(email, password);
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed. Check your credentials.');
+      setError(getAuthErrorMessage(err));
     } finally {
       setLoading(false);
     }
