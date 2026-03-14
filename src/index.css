@@ -27,3 +27,292 @@ body {
   background-color: var(--navy);
   color: var(--white);
 }
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.landing-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-position: center;
+  background-size: 72px 72px;
+  mask-image: radial-gradient(circle at center, black 45%, transparent 90%);
+}
+
+.landing-vignette {
+  background:
+    radial-gradient(circle at 20% 15%, rgba(0, 229, 255, 0.16), transparent 28%),
+    radial-gradient(circle at 82% 18%, rgba(111, 124, 255, 0.22), transparent 30%),
+    linear-gradient(180deg, rgba(7, 17, 31, 0.3), rgba(7, 17, 31, 0.92));
+}
+
+.pointer-spotlight {
+  pointer-events: none;
+  transition: background 140ms linear;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+  transition: transform 220ms ease-out;
+}
+
+.nav-shell {
+  box-shadow: 0 24px 80px rgba(4, 10, 20, 0.22);
+}
+
+.brand-mark {
+  box-shadow:
+    0 0 34px rgba(0, 229, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.interactive-button {
+  isolation: isolate;
+  will-change: transform;
+}
+
+.interactive-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.26), transparent 24%, transparent 76%, rgba(255, 255, 255, 0.14));
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.button-ripple {
+  position: absolute;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 62%);
+  transform: translate(-50%, -50%) scale(0.1);
+  animation: button-ripple 650ms ease-out forwards;
+  pointer-events: none;
+}
+
+.skill-pill,
+.floating-chip {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(248, 249, 250, 0.86);
+  backdrop-filter: blur(16px);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.skill-pill {
+  border-radius: 999px;
+  padding: 0.75rem 1rem;
+  font-size: 0.92rem;
+}
+
+.skill-pill:hover,
+.floating-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(0, 229, 255, 0.38);
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 229, 255, 0.08);
+}
+
+.floating-dock {
+  position: absolute;
+  left: 50%;
+  top: -0.6rem;
+  z-index: 12;
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.7rem 0.9rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(9, 17, 30, 0.42);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+  animation: dock-float 7s ease-in-out infinite;
+}
+
+.floating-chip {
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.premium-panel {
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.premium-panel::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), transparent 32%, transparent 72%, rgba(0, 229, 255, 0.12));
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.premium-panel::after {
+  content: '';
+  position: absolute;
+  inset: auto 1.4rem 1.2rem;
+  height: 6rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 229, 255, 0.14), transparent 70%);
+  filter: blur(22px);
+  opacity: 0;
+  transition: opacity 240ms ease;
+  pointer-events: none;
+}
+
+.premium-panel:hover::after {
+  opacity: 1;
+}
+
+.feature-dot {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(0, 229, 255, 0.72));
+  box-shadow: 0 0 22px rgba(0, 229, 255, 0.44);
+}
+
+.depth-phone-shell {
+  position: relative;
+  margin: 0 auto;
+  width: min(100%, 24rem);
+  aspect-ratio: 0.68;
+  border-radius: 3.4rem;
+  padding: 0.8rem;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.06));
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.depth-phone-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 18%, transparent 78%, rgba(255, 255, 255, 0.12));
+  pointer-events: none;
+}
+
+.depth-phone-screen {
+  position: relative;
+  height: 100%;
+  overflow: visible;
+  border-radius: 2.9rem;
+  background: linear-gradient(180deg, #14213b, #050a12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -24px 60px rgba(0, 0, 0, 0.45);
+  transform-style: preserve-3d;
+}
+
+.depth-phone-notch {
+  position: absolute;
+  left: 50%;
+  top: 1.1rem;
+  z-index: 20;
+  height: 1.7rem;
+  width: 8.8rem;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(5, 10, 18, 0.92);
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.depth-phone-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.22), transparent 20%),
+    radial-gradient(circle at 50% -10%, rgba(255, 255, 255, 0.35), transparent 26%);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+.depth-layer {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  transform-style: preserve-3d;
+  transition: transform 220ms ease-out;
+}
+
+.depth-layer-back {
+  overflow: hidden;
+}
+
+.depth-layer-mid {
+  z-index: 2;
+}
+
+.depth-layer-front {
+  z-index: 4;
+  pointer-events: none;
+}
+
+@keyframes button-ripple {
+  from {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(0.1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes dock-float {
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(-0.45rem);
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-grid {
+    background-size: 44px 44px;
+  }
+
+  .floating-dock {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin-bottom: 1.25rem;
+    transform: none;
+    overflow-x: auto;
+    justify-content: flex-start;
+  }
+
+  .depth-phone-shell {
+    width: min(100%, 20.5rem);
+    border-radius: 2.7rem;
+  }
+
+  .depth-phone-screen {
+    border-radius: 2.25rem;
+  }
+
+  .depth-phone-notch {
+    width: 7rem;
+    height: 1.45rem;
+  }
+}
