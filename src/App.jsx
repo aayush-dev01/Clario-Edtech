@@ -66,11 +66,17 @@ function App() {
     return unsub;
   }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = async (nextProfile = null) => {
+    if (nextProfile) {
+      setUserProfile(nextProfile);
+      return nextProfile;
+    }
     if (user) {
       const profile = await getUserProfile(user.uid);
       setUserProfile(profile);
+      return profile;
     }
+    return null;
   };
 
   const resolvedRole = userProfile?.role || getCachedProfile()?.role || getPendingRole(user?.uid) || 'student';

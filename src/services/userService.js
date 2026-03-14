@@ -1,5 +1,5 @@
-import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
-import { db, serverTimestamp } from './firebase';
+import { collection, doc, getDoc, getDocs, query, serverTimestamp as firestoreServerTimestamp, setDoc, where } from 'firebase/firestore';
+import { db } from './firebase';
 
 function sanitizeProfile(id, data) {
   if (!data) return null;
@@ -20,10 +20,11 @@ export async function getUserById(uid) {
 }
 
 export async function updateUser(uid, data) {
-  await updateDoc(doc(db, 'users', uid), {
+  await setDoc(doc(db, 'users', uid), {
     ...data,
-    updatedAt: serverTimestamp(),
-  });
+    updatedAt: firestoreServerTimestamp(),
+  }, { merge: true });
+  return { id: uid, ...data };
 }
 
 export async function getTutorsBySkill(skill) {

@@ -42,19 +42,19 @@ export default function TutorDashboard({ user, userProfile }) {
         actions={
           <>
             <Link to="/tutor/profile">
-              <PrimaryButton type="button">Edit profile</PrimaryButton>
+              <PrimaryButton type="button">Add skill</PrimaryButton>
             </Link>
             <StatusBadge tone="coral">{pending.length} pending requests</StatusBadge>
           </>
         }
       />
 
-      {(userProfile?.skills || []).length > 0 && (
-        <GlassPanel className="mb-6">
-          <div className="mb-5 flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-white">Your teaching stack</h2>
-            <StatusBadge tone="cyan">{userProfile.skills.length} skills live</StatusBadge>
-          </div>
+      <GlassPanel className="mb-6">
+        <div className="mb-5 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-white">Uploaded skills</h2>
+          <StatusBadge tone="cyan">{(userProfile?.skills || []).length} skills live</StatusBadge>
+        </div>
+        {(userProfile?.skills || []).length > 0 ? (
           <div className="flex flex-wrap gap-3">
             {(userProfile.skills || []).map((skill) => {
               const name = typeof skill === 'string' ? skill : skill?.name || skill?.skill || skill;
@@ -69,8 +69,15 @@ export default function TutorDashboard({ user, userProfile }) {
               );
             })}
           </div>
-        </GlassPanel>
-      )}
+        ) : (
+          <div className="rounded-[1.3rem] border border-white/10 bg-white/5 p-4">
+            <p className="text-white/62">No skills uploaded yet. Add them from your profile editor.</p>
+            <Link to="/tutor/profile" className="mt-4 inline-flex rounded-full bg-cyan px-4 py-2 text-sm font-semibold text-navy transition hover:bg-[#8df3ff]">
+              Add your first skill
+            </Link>
+          </div>
+        )}
+      </GlassPanel>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <GlassPanel className="border-coral/18">

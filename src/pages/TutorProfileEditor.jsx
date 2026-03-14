@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { GlassPanel, PageHero, PageShell, PrimaryButton, StatusBadge } from '../components/AppShell';
 import { updateUser } from '../services/userService';
 import { AVAILABLE_SKILLS, TIMING_OPTIONS, normalizeSkill, getSkillName } from '../utils/skills';
 
 export default function TutorProfileEditor({ user, userProfile, onProfileUpdate }) {
-  const [displayName, setDisplayName] = useState('');
+  const navigate = useNavigate();
   const [skills, setSkills] = useState([]);
   const [customInput, setCustomInput] = useState('');
   const [rate, setRate] = useState('');
@@ -12,10 +13,10 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [skillAdded, setSkillAdded] = useState('');
 
   useEffect(() => {
     if (!userProfile) return;
-    setDisplayName(userProfile.displayName || '');
     setSkills((userProfile.skills || []).map(normalizeSkill));
   }, [userProfile]);
 
@@ -26,6 +27,7 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
   const addSkill = (skillName) => {
     setError('');
     setSaved(false);
+    setSkillAdded('');
     const name = (skillName || customInput.trim()).trim();
     if (!name) {
       setError('Choose or enter a skill before adding it.');
@@ -49,15 +51,45 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
     setCustomInput('');
     setRate('');
     setSelectedSlots([]);
+    setSkillAdded(`${name} added to your profile draft.`);
+    window.setTimeout(() => setSkillAdded(''), 2500);
+  };
+
+  const buildDraftSkill = () => {
+    const name = customInput.trim();
+    const parsedRate = parseInt(rate, 10);
+
+    if (!name && !rate && selectedSlots.length === 0) {
+      return null;
+    }
+
+    if (!name) {
+      throw new Error('Choose or enter a skill before saving.');
+    }
+    if (Number.isNaN(parsedRate) || parsedRate <= 0) {
+      throw new Error('Enter a valid per-session rate before saving.');
+    }
+    if (selectedSlots.length === 0) {
+      throw new Error('Select at least one timing slot before saving.');
+    }
+    if (skills.some((skill) => getSkillName(skill).toLowerCase() === name.toLowerCase())) {
+      throw new Error('That skill is already in your profile.');
+    }
+
+    return { name, rate: parsedRate, timingSlots: [...selectedSlots] };
   };
 
   const choosePresetSkill = (skillName) => {
     setSaved(false);
+    setError('');
+    setSkillAdded('');
     setCustomInput(skillName);
   };
 
   const removeSkill = (skill) => {
     const name = getSkillName(skill);
+    setSaved(false);
+    setSkillAdded('');
     setSkills((current) => current.filter((entry) => getSkillName(entry) !== name));
   };
 
@@ -68,19 +100,26 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
     setLoading(true);
     setSaved(false);
     try {
-      if (!displayName.trim()) {
-        throw new Error('Display name is required.');
-      }
-      if (customInput.trim() || rate || selectedSlots.length > 0) {
-        throw new Error('You have a skill draft in progress. Click "Add skill" before saving.');
-      }
-      if (skills.length === 0) {
+      const draftSkill = buildDraftSkill();
+      const nextSkills = draftSkill ? [...skills, draftSkill] : skills;
+
+      if (nextSkills.length === 0) {
         throw new Error('Add at least one skill before saving your tutor profile.');
       }
-      await updateUser(user.uid, { displayName, skills });
-      await onProfileUpdate?.();
+      const updatedProfile = await Promise.race([
+        updateUser(user.uid, { skills: nextSkills }),
+        new Promise((_, reject) => {
+          window.setTimeout(() => reject(new Error('Saving is taking too long. Check your Firebase connection or permissions and try again.')), 8000);
+        }),
+      ]);
+      setSkills(nextSkills);
+      setCustomInput('');
+      setRate('');
+      setSelectedSlots([]);
+      await onProfileUpdate?.(updatedProfile);
       setSaved(true);
-      window.setTimeout(() => setSaved(false), 3000);
+      setSkillAdded('');
+      window.setTimeout(() => navigate('/tutor/dashboard'), 1200);
     } catch (err) {
       setError(err.message || 'Failed to save profile. Please try again.');
     } finally {
@@ -93,23 +132,17 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
       <PageHero
         eyebrow="Tutor profile editor"
         title="Shape your teaching presence"
-        description="Keep your display name, skills, rates, and availability polished so students can request sessions with clear expectations."
+        description="Manage your teaching skills, rates, and availability so students can request sessions with clear expectations."
         aside={<StatusBadge tone="cyan">{skills.length} skills listed</StatusBadge>}
       />
 
       <form onSubmit={handleSave} className="grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
         <GlassPanel>
-          <label className="mb-3 block text-sm text-white/76">Display name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(event) => {
-              setSaved(false);
-              setDisplayName(event.target.value);
-            }}
-            required
-            className="w-full rounded-[1rem] border border-white/12 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-cyan"
-          />
+          <p className="text-sm uppercase tracking-[0.28em] text-cyan/72">Tutor name</p>
+          <div className="mt-3 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-4">
+            <p className="text-lg font-medium text-white">{userProfile?.displayName || user?.displayName || user?.email}</p>
+            <p className="mt-1 text-sm text-white/55">Your account name is used automatically across the app.</p>
+          </div>
 
           <div className="mt-8">
             <p className="text-sm uppercase tracking-[0.28em] text-cyan/72">Timing slots</p>
@@ -157,6 +190,8 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
               value={customInput}
               onChange={(event) => {
                 setSaved(false);
+                setError('');
+                setSkillAdded('');
                 setCustomInput(event.target.value);
               }}
               onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), addSkill())}
@@ -168,8 +203,11 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
               value={rate}
               onChange={(event) => {
                 setSaved(false);
+                setError('');
+                setSkillAdded('');
                 setRate(event.target.value);
               }}
+              onKeyDown={(event) => event.key === 'Enter' && (event.preventDefault(), addSkill())}
               placeholder="Rate"
               min="0"
               className="rounded-[1rem] border border-white/12 bg-white/5 px-4 py-3 text-white placeholder-white/32 outline-none transition focus:border-cyan"
@@ -185,9 +223,15 @@ export default function TutorProfileEditor({ user, userProfile, onProfileUpdate 
 
           <p className="mt-3 text-xs text-white/48">Both rate and timing are required for every skill.</p>
 
+          {skillAdded ? (
+            <div className="mt-5 rounded-[1.2rem] border border-cyan/20 bg-cyan/12 px-4 py-3 text-sm font-medium text-cyan">
+              {skillAdded}
+            </div>
+          ) : null}
+
           {saved ? (
             <div className="mt-5 rounded-[1.2rem] border border-teal/20 bg-teal/12 px-4 py-3 text-sm font-medium text-teal">
-              Profile saved successfully.
+              Profile saved successfully. Redirecting to dashboard...
             </div>
           ) : null}
 
