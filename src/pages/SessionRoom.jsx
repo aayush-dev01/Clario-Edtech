@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GlassPanel, PageHero, PageShell, PrimaryButton, SecondaryButton, StatusBadge } from '../components/AppShell';
-import JitsiMeet from '../components/JitsiMeet';
+import DailyCall from '../components/DailyCall';
 import { completeSession, subscribeSessionById } from '../services/sessionService';
-import { getJitsiMeetingUrl } from '../utils/jitsi';
 
 export default function SessionRoom({ user, userProfile }) {
   const { sessionId } = useParams();
@@ -11,6 +10,9 @@ export default function SessionRoom({ user, userProfile }) {
   const [session, setSession] = useState(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [resolved, setResolved] = useState(false);
+  const [dailyRoom, setDailyRoom] = useState(null);
+  const [dailyError, setDailyError] = useState('');
+  const [dailyLoading, setDailyLoading] = useState(true);
 
   useEffect(
     () =>
@@ -20,6 +22,51 @@ export default function SessionRoom({ user, userProfile }) {
       }),
     [sessionId]
   );
+
+  useEffect(() => {
+    if (!session || !userProfile?.role) return undefined;
+
+    const controller = new AbortController();
+
+    const prepareRoom = async () => {
+      setDailyLoading(true);
+      setDailyError('');
+
+      try {
+        const response = await fetch('/api/daily-room', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            sessionId,
+            userName: user?.displayName || userProfile?.name || user?.email || 'Participant',
+            isOwner: userProfile.role === 'tutor',
+          }),
+          signal: controller.signal,
+        });
+
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error || 'Failed to prepare the Daily room.');
+        }
+
+        setDailyRoom(payload);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        setDailyError(error?.message || 'Failed to prepare the Daily room.');
+      } finally {
+        if (!controller.signal.aborted) {
+          setDailyLoading(false);
+        }
+      }
+    };
+
+    prepareRoom();
+
+    return () => controller.abort();
+  }, [session, sessionId, user, userProfile]);
 
   const handleEnd = async () => {
     await completeSession(sessionId);
@@ -65,15 +112,12 @@ export default function SessionRoom({ user, userProfile }) {
     );
   }
 
-  const roomName = session.jitsiRoomId || `ClarioSession${sessionId}`;
-  const fullMeetingUrl = getJitsiMeetingUrl(roomName, user?.displayName || user?.email || 'Participant');
-
   return (
     <PageShell>
       <PageHero
         eyebrow="Live session"
         title={`${session.skill} video room`}
-        description="This room is backed by a shared session record, so both participants can join from different devices using the same route or room link."
+        description="This room is backed by a shared session record, so both participants can join the same Daily call from different devices."
         actions={
           <>
             <PrimaryButton onClick={copyJoinLink}>{linkCopied ? 'Link copied' : 'Copy room link'}</PrimaryButton>
@@ -87,24 +131,37 @@ export default function SessionRoom({ user, userProfile }) {
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div>
-          <JitsiMeet roomName={roomName} userDisplayName={user?.displayName || user?.email} onEnd={handleLeaveCall} />
+          {dailyError ? (
+            <GlassPanel className="flex min-h-[460px] items-center justify-center text-center">
+              <div className="max-w-md">
+                <p className="text-lg font-semibold text-white">Call setup failed</p>
+                <p className="mt-3 leading-7 text-white/64">{dailyError}</p>
+              </div>
+            </GlassPanel>
+          ) : dailyLoading || !dailyRoom ? (
+            <GlassPanel className="flex min-h-[460px] items-center justify-center text-center">
+              <div>
+                <div className="mx-auto h-14 w-14 animate-spin rounded-full border-2 border-cyan/20 border-t-cyan" />
+                <p className="mt-4 text-sm uppercase tracking-[0.28em] text-cyan/75">Preparing Daily room</p>
+              </div>
+            </GlassPanel>
+          ) : (
+            <DailyCall
+              roomUrl={dailyRoom.roomUrl}
+              token={dailyRoom.token}
+              userDisplayName={user?.displayName || userProfile?.name || user?.email}
+              onLeave={handleLeaveCall}
+            />
+          )}
         </div>
 
         <div className="space-y-6">
           <GlassPanel>
             <h2 className="text-xl font-semibold text-white">Room controls</h2>
-            <p className="mt-3 leading-7 text-white/66">Share this route or room link with the other participant. Jitsi uses the same room id across devices, so both users land in one live call.</p>
+            <p className="mt-3 leading-7 text-white/66">Share this session route with the other participant. Both users are issued a room token for the same Daily room, so they land in one live call.</p>
             <div className="mt-5 rounded-[1.4rem] border border-white/10 bg-white/5 p-4 text-sm text-white/58">
               {joinLink}
             </div>
-            <a
-              href={fullMeetingUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="mt-4 inline-flex rounded-full border border-cyan/20 bg-cyan/12 px-4 py-2 text-sm font-medium text-cyan transition hover:bg-cyan/18"
-            >
-              Open direct Jitsi room
-            </a>
           </GlassPanel>
 
           <GlassPanel>
@@ -120,3 +177,4 @@ export default function SessionRoom({ user, userProfile }) {
     </PageShell>
   );
 }
+

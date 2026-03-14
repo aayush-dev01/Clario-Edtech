@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { sanitizeJitsiRoomName } from '../utils/jitsi';
+import { getJitsiDomain, sanitizeJitsiRoomName } from '../utils/jitsi';
 
 
 export default function JitsiMeet({ roomName, userDisplayName, onEnd }) {
@@ -34,7 +34,7 @@ export default function JitsiMeet({ roomName, userDisplayName, onEnd }) {
         setCallState('connecting');
         setError(null);
 
-        const api = new window.JitsiMeetExternalAPI('meet.jit.si', {
+        const api = new window.JitsiMeetExternalAPI(getJitsiDomain(), {
           roomName: safeRoom,
           parentNode: containerRef.current,
           width: '100%',

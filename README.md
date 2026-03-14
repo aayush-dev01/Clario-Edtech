@@ -20,6 +20,7 @@ A peer-to-peer skill learning platform for college communities. Students can tea
 
 2. **Configure Firebase env vars**
    Copy `.env.example` into `.env` and fill in your Firebase project values.
+   If you want embedded production video calls, also set `VITE_JITSI_DOMAIN` to your own Jitsi deployment. `meet.jit.si` is not reliable for production embedding.
 
 3. **Enable Firebase services**
    Turn on Email/Password auth in Firebase Authentication and apply the included `firestore.rules` in your Firestore project.
