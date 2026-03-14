@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { GlassPanel, PageHero, PageShell, PrimaryButton, SecondaryButton, StatusBadge } from '../components/AppShell';
 import JitsiMeet from '../components/JitsiMeet';
 import { completeSession, subscribeSessionById } from '../services/sessionService';
+import { getJitsiMeetingUrl } from '../utils/jitsi';
 
-export default function SessionRoom({ user }) {
+export default function SessionRoom({ user, userProfile }) {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const [session, setSession] = useState(null);
@@ -22,6 +23,10 @@ export default function SessionRoom({ user }) {
 
   const handleEnd = async () => {
     await completeSession(sessionId);
+    if (userProfile?.role === 'tutor') {
+      navigate('/tutor/dashboard');
+      return;
+    }
     navigate(`/session/complete/${sessionId}`);
   };
 
@@ -61,6 +66,7 @@ export default function SessionRoom({ user }) {
   }
 
   const roomName = session.jitsiRoomId || `ClarioSession${sessionId}`;
+  const fullMeetingUrl = getJitsiMeetingUrl(roomName, user?.displayName || user?.email || 'Participant');
 
   return (
     <PageShell>
@@ -91,6 +97,14 @@ export default function SessionRoom({ user }) {
             <div className="mt-5 rounded-[1.4rem] border border-white/10 bg-white/5 p-4 text-sm text-white/58">
               {joinLink}
             </div>
+            <a
+              href={fullMeetingUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-4 inline-flex rounded-full border border-cyan/20 bg-cyan/12 px-4 py-2 text-sm font-medium text-cyan transition hover:bg-cyan/18"
+            >
+              Open direct Jitsi room
+            </a>
           </GlassPanel>
 
           <GlassPanel>

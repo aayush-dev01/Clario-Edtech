@@ -1,8 +1,9 @@
 import { Link, useParams } from 'react-router-dom';
 import { GlassPanel, PageHero, PageShell, StatusBadge } from '../components/AppShell';
 
-export default function SessionComplete() {
+export default function SessionComplete({ userProfile }) {
   const { sessionId } = useParams();
+  const isTutor = userProfile?.role === 'tutor';
 
   return (
     <PageShell className="flex items-center">
@@ -20,14 +21,16 @@ export default function SessionComplete() {
           </div>
           <p className="mt-6 text-lg text-white/70">Thanks for learning with Clario.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            {!isTutor ? (
+              <Link
+                to={`/session/rate/${sessionId}`}
+                className="flex-1 rounded-[1.1rem] bg-teal px-5 py-3 font-semibold text-navy transition hover:bg-teal/90"
+              >
+                Rate this session
+              </Link>
+            ) : null}
             <Link
-              to={`/session/rate/${sessionId}`}
-              className="flex-1 rounded-[1.1rem] bg-teal px-5 py-3 font-semibold text-navy transition hover:bg-teal/90"
-            >
-              Rate this session
-            </Link>
-            <Link
-              to="/"
+              to={isTutor ? '/tutor/dashboard' : '/student/dashboard'}
               className="flex-1 rounded-[1.1rem] border border-white/14 bg-white/6 px-5 py-3 font-medium text-white/86 transition hover:bg-white/10"
             >
               Back to dashboard

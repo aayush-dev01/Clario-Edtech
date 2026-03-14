@@ -150,11 +150,11 @@ function App() {
             path="session/room/:sessionId"
             element={
               <ProtectedRoute user={user} userProfile={userProfile}>
-                <SessionRoom user={user} />
+                <SessionRoom user={user} userProfile={userProfile} />
               </ProtectedRoute>
             }
           />
-          <Route path="session/complete/:sessionId" element={<ProtectedRoute user={user} userProfile={userProfile}><SessionComplete /></ProtectedRoute>} />
+          <Route path="session/complete/:sessionId" element={<ProtectedRoute user={user} userProfile={userProfile}><SessionComplete userProfile={userProfile} /></ProtectedRoute>} />
           <Route
             path="session/rate/:sessionId"
             element={

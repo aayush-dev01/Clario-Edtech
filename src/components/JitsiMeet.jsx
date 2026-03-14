@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { sanitizeJitsiRoomName } from '../utils/jitsi';
 
-function sanitizeRoomName(name) {
-  return (name || '').replace(/[^a-zA-Z0-9-_]/g, '').slice(0, 100) || 'ClarioRoom';
-}
 
 export default function JitsiMeet({ roomName, userDisplayName, onEnd }) {
   const containerRef = useRef(null);
@@ -14,7 +12,7 @@ export default function JitsiMeet({ roomName, userDisplayName, onEnd }) {
   useEffect(() => {
     if (!containerRef.current || !roomName) return undefined;
 
-    const safeRoom = sanitizeRoomName(roomName);
+    const safeRoom = sanitizeJitsiRoomName(roomName);
     let cancelled = false;
 
     const clearPendingTimeout = () => {
