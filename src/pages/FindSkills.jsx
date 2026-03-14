@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { getTutorsBySkill, getAllTutors } from '../services/userService';
-import { getRatingsForTutor } from '../services/ratingService';
+import { Link, useSearchParams } from 'react-router-dom';
+import { GlassPanel, PageHero, PageShell, StatusBadge } from '../components/AppShell';
 import SkillMap from '../components/SkillMap';
+import { getRatingsForTutor } from '../services/ratingService';
+import { getAllTutors, getTutorsBySkill } from '../services/userService';
 
 const ALL_SKILLS = ['React', 'Python', 'Public Speaking', 'Photography', 'UI Design'];
 
-export default function FindSkills({ user }) {
+function getSkillName(skill) {
+  return typeof skill === 'string' ? skill : skill?.name || skill?.skill || '';
+}
+
+export default function FindSkills() {
   const [searchParams] = useSearchParams();
   const initialSkill = searchParams.get('skill') || '';
   const [selectedSkill, setSelectedSkill] = useState(initialSkill);
@@ -24,107 +28,112 @@ export default function FindSkills({ user }) {
   }, [selectedSkill]);
 
   useEffect(() => {
-    tutors.forEach((t) => {
-      getRatingsForTutor(t.id).then((r) =>
-        setRatings((prev) => ({ ...prev, [t.id]: r }))
-      );
+    tutors.forEach((tutor) => {
+      getRatingsForTutor(tutor.id).then((rating) => {
+        setRatings((current) => ({ ...current, [tutor.id]: rating }));
+      });
     });
   }, [tutors]);
 
-  function getSkillName(s) {
-  return typeof s === 'string' ? s : (s.name || s.skill || '');
-}
-
   const filtered = tutors.filter(
-    (t) =>
+    (tutor) =>
       !search ||
-      t.displayName?.toLowerCase().includes(search.toLowerCase()) ||
-      (t.skills || []).some((s) => getSkillName(s).toLowerCase().includes(search.toLowerCase()))
+      tutor.displayName?.toLowerCase().includes(search.toLowerCase()) ||
+      (tutor.skills || []).some((skill) => getSkillName(skill).toLowerCase().includes(search.toLowerCase()))
   );
 
   return (
-    <div className="min-h-screen px-6 py-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2">Find Skills</h1>
-        <p className="text-white/70 mb-8">Browse tutors by skill and book a session.</p>
+    <PageShell>
+      <PageHero
+        eyebrow="Tutor discovery"
+        title="Find the right skill mentor"
+        description="Search tutors by specialty, rating, and available teaching stack, then move directly into a request flow that works across devices."
+        aside={<StatusBadge tone="cyan">{filtered.length} tutors visible</StatusBadge>}
+      />
 
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold text-white mb-4">3D Skill Map</h2>
-          <SkillMap onSkillSelect={setSelectedSkill} />
+      <GlassPanel className="mb-6 overflow-hidden">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.28em] text-cyan/72">Spatial browse</p>
+            <h2 className="mt-2 text-2xl font-semibold text-white">3D skill map</h2>
+          </div>
         </div>
+        <SkillMap onSkillSelect={setSelectedSkill} />
+      </GlassPanel>
 
-        <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setSelectedSkill('')}
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              !selectedSkill ? 'bg-cyan text-navy' : 'bg-white/10 text-white/80 hover:bg-white/20'
-            }`}
-          >
-            All
-          </button>
-          {ALL_SKILLS.map((s) => (
+      <GlassPanel className="mb-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
             <button
-              key={s}
-              onClick={() => setSelectedSkill(s)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                selectedSkill === s ? 'bg-cyan text-navy' : 'bg-white/10 text-white/80 hover:bg-white/20'
-              }`}
+              type="button"
+              onClick={() => setSelectedSkill('')}
+              className={`rounded-full px-4 py-2 text-sm transition ${!selectedSkill ? 'bg-cyan text-navy' : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10'}`}
             >
-              {s}
+              All
             </button>
-          ))}
-        </div>
-
-        <input
-          type="text"
-          placeholder="Search tutors..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md mb-6 px-4 py-3 rounded-lg bg-white/5 border border-white/20 text-white placeholder-white/40 focus:border-cyan focus:outline-none"
-        />
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((tutor) => (
-            <div
-              key={tutor.id}
-              className="bg-white/5 rounded-xl p-6 border border-white/10 hover:border-cyan/30 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="text-lg font-semibold text-white">{tutor.displayName}</h3>
-                  <p className="text-white/60 text-sm">{tutor.email}</p>
-                </div>
-                {ratings[tutor.id] && (
-                  <span className="px-2 py-1 rounded bg-teal/20 text-teal text-sm">
-                    ★ {ratings[tutor.id].average}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {(tutor.skills || []).map((s) => {
-                  const name = getSkillName(s);
-                  const rate = typeof s === 'object' && s.rate ? s.rate : null;
-                  return (
-                    <span key={name} className="px-2 py-1 rounded bg-cyan/20 text-cyan text-xs">
-                      {name}{rate != null && rate > 0 ? ` ₹${rate}` : ''}
-                    </span>
-                  );
-                })}
-              </div>
-              <Link
-                to={`/tutor/${tutor.id}`}
-                className="block w-full py-2 rounded-lg bg-cyan text-navy font-medium text-center hover:bg-teal transition-colors"
+            {ALL_SKILLS.map((skill) => (
+              <button
+                key={skill}
+                type="button"
+                onClick={() => setSelectedSkill(skill)}
+                className={`rounded-full px-4 py-2 text-sm transition ${selectedSkill === skill ? 'bg-cyan text-navy' : 'border border-white/10 bg-white/5 text-white/72 hover:bg-white/10'}`}
               >
-                View Profile
-              </Link>
-            </div>
-          ))}
-        </div>
+                {skill}
+              </button>
+            ))}
+          </div>
 
-        {filtered.length === 0 && (
-          <p className="text-white/60 text-center py-12">No tutors found for this skill.</p>
-        )}
+          <input
+            type="text"
+            placeholder="Search tutors or skills..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="w-full max-w-md rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/35 outline-none transition focus:border-cyan"
+          />
+        </div>
+      </GlassPanel>
+
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        {filtered.map((tutor) => (
+          <GlassPanel key={tutor.id} className="premium-panel">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-semibold text-white">{tutor.displayName}</h3>
+                <p className="mt-1 text-sm text-white/52">{tutor.email}</p>
+              </div>
+              <StatusBadge tone="teal">
+                {ratings[tutor.id]?.count ? `★ ${ratings[tutor.id].average}` : 'new'}
+              </StatusBadge>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {(tutor.skills || []).map((skill) => {
+                const name = getSkillName(skill);
+                const rate = typeof skill === 'object' && skill.rate ? skill.rate : null;
+                return (
+                  <span key={name} className="rounded-full border border-cyan/18 bg-cyan/10 px-3 py-2 text-xs text-cyan">
+                    {name}
+                    {rate != null && rate > 0 ? ` · Rs ${rate}` : ''}
+                  </span>
+                );
+              })}
+            </div>
+
+            <Link
+              to={`/tutor/${tutor.id}`}
+              className="mt-6 inline-flex rounded-full bg-cyan px-4 py-2 text-sm font-semibold text-navy transition hover:bg-[#8df3ff]"
+            >
+              View profile
+            </Link>
+          </GlassPanel>
+        ))}
       </div>
-    </div>
+
+      {filtered.length === 0 ? (
+        <GlassPanel className="mt-6 py-14 text-center">
+          <p className="text-white/62">No tutors found for this skill.</p>
+        </GlassPanel>
+      ) : null}
+    </PageShell>
   );
 }

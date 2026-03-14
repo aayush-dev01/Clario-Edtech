@@ -1,59 +1,54 @@
-import { getUsers, setUsers } from './localStore';
+import { collection, doc, getDoc, getDocs, query, updateDoc, where } from 'firebase/firestore';
+import { db, serverTimestamp } from './firebase';
 
-export async function getUserById(uid) {
-  const users = getUsers();
-  const profile = users[uid];
-  if (!profile) return null;
-  const { password: _, ...safe } = profile;
-  return { id: profile.id, ...safe };
+function sanitizeProfile(id, data) {
+  if (!data) return null;
+  return { id, ...data };
 }
 
-export async function updateUser(uid, data) {
-  const users = getUsers();
-  if (!users[uid]) return;
-  users[uid] = { ...users[uid], ...data, updatedAt: new Date().toISOString() };
-  setUsers(users);
+function getSkillName(skill) {
+  return typeof skill === 'string' ? skill : skill?.name || skill?.skill || '';
 }
 
 function skillMatches(skills, skillName) {
-  return (skills || []).some((s) => {
-    const name = typeof s === 'string' ? s : (s.name || s.skill || '');
-    return name.toLowerCase() === skillName.toLowerCase();
+  return (skills || []).some((skill) => getSkillName(skill).toLowerCase() === skillName.toLowerCase());
+}
+
+export async function getUserById(uid) {
+  const snapshot = await getDoc(doc(db, 'users', uid));
+  return snapshot.exists() ? sanitizeProfile(snapshot.id, snapshot.data()) : null;
+}
+
+export async function updateUser(uid, data) {
+  await updateDoc(doc(db, 'users', uid), {
+    ...data,
+    updatedAt: serverTimestamp(),
   });
 }
 
 export async function getTutorsBySkill(skill) {
-  const users = getUsers();
-  return Object.values(users)
-    .filter((u) => u.role === 'tutor' && skillMatches(u.skills, skill))
-    .map((u) => { const { password: _, ...safe } = u; return { id: u.id, ...safe }; });
+  const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
+  return snapshot.docs
+    .map((docSnapshot) => sanitizeProfile(docSnapshot.id, docSnapshot.data()))
+    .filter((user) => skillMatches(user.skills, skill));
 }
 
 export async function getAllTutors() {
-  const users = getUsers();
-  return Object.values(users)
-    .filter((u) => u.role === 'tutor')
-    .map((u) => { const { password: _, ...safe } = u; return { id: u.id, ...safe }; });
+  const snapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'tutor')));
+  return snapshot.docs.map((docSnapshot) => sanitizeProfile(docSnapshot.id, docSnapshot.data()));
 }
 
 export async function addTutorSkill(uid, skill) {
-  const users = getUsers();
-  const user = users[uid];
-  if (!user) return;
-  const skills = user.skills || [];
-  if (!skills.includes(skill)) {
-    skills.push(skill);
-    user.skills = skills;
-    user.updatedAt = new Date().toISOString();
-    setUsers(users);
-  }
+  const profile = await getUserById(uid);
+  if (!profile) return;
+  const skills = profile.skills || [];
+  if (skills.some((entry) => getSkillName(entry).toLowerCase() === getSkillName(skill).toLowerCase())) return;
+  await updateUser(uid, { skills: [...skills, skill] });
 }
 
 export async function removeTutorSkill(uid, skill) {
-  const users = getUsers();
-  const user = users[uid];
-  if (!user) return;
-  user.skills = (user.skills || []).filter((s) => s !== skill);
-  user.updatedAt = new Date().toISOString();
-  setUsers(users);
+  const profile = await getUserById(uid);
+  if (!profile) return;
+  const nextSkills = (profile.skills || []).filter((entry) => getSkillName(entry) !== getSkillName(skill));
+  await updateUser(uid, { skills: nextSkills });
 }

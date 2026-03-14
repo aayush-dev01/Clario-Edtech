@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getUserById } from '../services/userService';
+import { useNavigate, useParams } from 'react-router-dom';
+import { GlassPanel, PageHero, PageShell, PrimaryButton, StatusBadge } from '../components/AppShell';
 import { getRatingsForTutor } from '../services/ratingService';
 import { createSessionRequest } from '../services/sessionService';
+import { getUserById } from '../services/userService';
+
+function getSkillName(skill) {
+  return typeof skill === 'string' ? skill : skill?.name || skill?.skill || '';
+}
 
 export default function TutorProfile({ user }) {
   const { tutorId } = useParams();
@@ -19,100 +24,106 @@ export default function TutorProfile({ user }) {
     getRatingsForTutor(tutorId).then(setRatings);
   }, [tutorId]);
 
-  const handleRequest = async (e) => {
-    e.preventDefault();
+  const handleRequest = async (event) => {
+    event.preventDefault();
     if (!user || !skill) return;
     setLoading(true);
     try {
       await createSessionRequest(user.uid, tutorId, skill, message);
       setSent(true);
-    } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  if (!tutor) return <div className="min-h-screen flex items-center justify-center text-white">Loading...</div>;
+  if (!tutor) {
+    return (
+      <PageShell className="flex items-center">
+        <GlassPanel className="mx-auto max-w-lg text-center">
+          <p className="text-white/70">Loading tutor profile...</p>
+        </GlassPanel>
+      </PageShell>
+    );
+  }
 
   return (
-    <div className="min-h-screen px-6 py-8">
-      <div className="max-w-2xl mx-auto">
-        <button onClick={() => navigate(-1)} className="text-cyan hover:text-teal mb-6">← Back</button>
+    <PageShell>
+      <button onClick={() => navigate(-1)} className="mb-6 text-sm uppercase tracking-[0.28em] text-cyan/74">
+        Back
+      </button>
 
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10 mb-6">
-          <h1 className="text-2xl font-bold text-white mb-1">{tutor.displayName}</h1>
-          <p className="text-white/60 mb-4">{tutor.email}</p>
-          {ratings && ratings.count > 0 && (
-            <p className="text-teal mb-4">★ {ratings.average} ({ratings.count} reviews)</p>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {(tutor.skills || []).map((s) => {
-              const name = typeof s === 'string' ? s : (s.name || s.skill || '');
-              const rate = typeof s === 'object' && s.rate ? s.rate : null;
-              const slots = typeof s === 'object' && s.timingSlots ? s.timingSlots : [];
+      <PageHero
+        eyebrow="Tutor profile"
+        title={tutor.displayName}
+        description="Review teaching skills, rates, and recent feedback before sending a request that creates a shared session record."
+        aside={<StatusBadge tone="teal">{ratings?.count ? `★ ${ratings.average} / 5` : 'New tutor'}</StatusBadge>}
+      />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_0.95fr]">
+        <GlassPanel>
+          <p className="text-white/52">{tutor.email}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            {(tutor.skills || []).map((entry) => {
+              const name = getSkillName(entry);
+              const rate = typeof entry === 'object' && entry.rate ? entry.rate : null;
+              const slots = typeof entry === 'object' && entry.timingSlots ? entry.timingSlots : [];
               return (
-                <div key={name} className="px-3 py-2 rounded-lg bg-cyan/20 text-cyan">
-                  <span>{name}</span>
-                  {rate != null && rate > 0 && <span className="ml-1 text-teal">₹{rate}/session</span>}
-                  {slots.length > 0 && (
-                    <p className="text-white/70 text-xs mt-1">{slots.join(', ')}</p>
-                  )}
+                <div key={name} className="rounded-[1.3rem] border border-cyan/18 bg-cyan/10 px-4 py-3">
+                  <p className="font-medium text-white">{name}</p>
+                  {rate != null && rate > 0 ? <p className="mt-1 text-sm text-teal">Rs {rate} / session</p> : null}
+                  {slots.length > 0 ? <p className="mt-2 text-xs text-white/58">{slots.join(', ')}</p> : null}
                 </div>
               );
             })}
           </div>
-        </div>
+        </GlassPanel>
 
-        {user && user.uid !== tutorId && (
-          <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-            <h2 className="text-lg font-semibold text-white mb-4">Request a Session</h2>
+        {user && user.uid !== tutorId ? (
+          <GlassPanel>
+            <h2 className="text-xl font-semibold text-white">Request a session</h2>
             {sent ? (
-              <p className="text-teal">Request sent! The tutor will respond soon.</p>
+              <p className="mt-4 text-teal">Request sent. The tutor will see it in their realtime requests queue.</p>
             ) : (
-              <form onSubmit={handleRequest} className="space-y-4">
+              <form onSubmit={handleRequest} className="mt-6 space-y-4">
                 <div>
-                  <label className="block text-white/80 text-sm mb-2">Skill to learn</label>
+                  <label className="mb-2 block text-sm text-white/76">Skill to learn</label>
                   <select
                     value={skill}
-                    onChange={(e) => setSkill(e.target.value)}
+                    onChange={(event) => setSkill(event.target.value)}
                     required
-                    className="w-full px-4 py-3 rounded-lg bg-navy border border-white/20 text-white focus:border-cyan focus:outline-none"
+                    className="w-full rounded-[1rem] border border-white/12 bg-white/5 px-4 py-3 text-white outline-none transition focus:border-cyan"
                   >
                     <option value="">Select a skill</option>
-                    {(tutor.skills || []).map((s) => {
-                    const name = typeof s === 'string' ? s : (s.name || s.skill || '');
-                    const rate = typeof s === 'object' && s.rate ? s.rate : null;
-                    return (
-                      <option key={name} value={name}>
-                        {name}{rate != null && rate > 0 ? ` - ₹${rate}/session` : ''}
-                      </option>
-                    );
-                  })}
+                    {(tutor.skills || []).map((entry) => {
+                      const name = getSkillName(entry);
+                      const rate = typeof entry === 'object' && entry.rate ? entry.rate : null;
+                      return (
+                        <option key={name} value={name}>
+                          {name}
+                          {rate != null && rate > 0 ? ` - Rs ${rate}/session` : ''}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-white/80 text-sm mb-2">Message (optional)</label>
+                  <label className="mb-2 block text-sm text-white/76">Message</label>
                   <textarea
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-lg bg-navy border border-white/20 text-white placeholder-white/40 focus:border-cyan focus:outline-none"
-                    placeholder="Tell the tutor what you'd like to focus on..."
+                    onChange={(event) => setMessage(event.target.value)}
+                    rows={4}
+                    className="w-full rounded-[1rem] border border-white/12 bg-white/5 px-4 py-3 text-white placeholder-white/32 outline-none transition focus:border-cyan"
+                    placeholder="What do you want to focus on?"
                   />
                 </div>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 rounded-lg bg-cyan text-navy font-semibold hover:bg-teal transition-colors disabled:opacity-50"
-                >
-                  {loading ? 'Sending...' : 'Send Request'}
-                </button>
+                <PrimaryButton type="submit" disabled={loading} className="w-full">
+                  {loading ? 'Sending request...' : 'Send request'}
+                </PrimaryButton>
               </form>
             )}
-          </div>
-        )}
+          </GlassPanel>
+        ) : null}
       </div>
-    </div>
+    </PageShell>
   );
 }

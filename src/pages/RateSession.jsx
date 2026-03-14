@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { GlassPanel, PageHero, PageShell, PrimaryButton } from '../components/AppShell';
 import { addRating } from '../services/ratingService';
 import { getSessionById } from '../services/sessionService';
 import { getUserById } from '../services/userService';
@@ -14,71 +15,70 @@ export default function RateSession({ user }) {
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    getSessionById(sessionId).then((s) => {
-      setSession(s);
-      if (s?.tutorId) {
-        getUserById(s.tutorId).then(setTutor);
+    getSessionById(sessionId).then((sessionData) => {
+      setSession(sessionData);
+      if (sessionData?.tutorId) {
+        getUserById(sessionData.tutorId).then(setTutor);
       }
     });
   }, [sessionId]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     if (!user?.uid || !session?.tutorId || rating === 0) return;
     await addRating(sessionId, user.uid, session.tutorId, rating, review);
     setSubmitted(true);
-    setTimeout(() => navigate('/'), 2000);
+    window.setTimeout(() => navigate('/'), 1800);
   };
 
   return (
-    <div className="min-h-screen px-6 py-8 flex items-center justify-center">
-      <div className="max-w-md w-full">
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10">
-          <h1 className="text-2xl font-bold text-white mb-2">Rate this Session</h1>
-          <p className="text-white/60 mb-6">{session?.skill} with {tutor?.displayName || 'Tutor'}</p>
+    <PageShell className="flex items-center">
+      <div className="mx-auto w-full max-w-2xl">
+        <PageHero
+          eyebrow="Session feedback"
+          title="Rate your session"
+          description={`${session?.skill || 'Session'} with ${tutor?.displayName || 'your tutor'}`}
+        />
 
+        <GlassPanel>
           {submitted ? (
-            <p className="text-teal text-center">Thanks for rating! Redirecting...</p>
+            <p className="text-center text-lg text-teal">Thanks for rating. Redirecting...</p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label className="block text-white/80 text-sm mb-2">Rating (1-5)</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((r) => (
+                <label className="mb-3 block text-sm text-white/76">Rating</label>
+                <div className="flex gap-3">
+                  {[1, 2, 3, 4, 5].map((value) => (
                     <button
-                      key={r}
+                      key={value}
                       type="button"
-                      onClick={() => setRating(r)}
-                      className={`w-12 h-12 rounded-lg font-semibold transition-colors ${
-                        rating >= r ? 'bg-cyan text-navy' : 'bg-white/10 text-white/60 hover:bg-white/20'
-                      }`}
+                      onClick={() => setRating(value)}
+                      className={`h-14 w-14 rounded-2xl font-semibold transition ${rating >= value ? 'bg-cyan text-navy' : 'border border-white/12 bg-white/6 text-white/66 hover:bg-white/10'}`}
                     >
-                      {r}
+                      {value}
                     </button>
                   ))}
                 </div>
               </div>
+
               <div>
-                <label className="block text-white/80 text-sm mb-2">Review (optional)</label>
+                <label className="mb-3 block text-sm text-white/76">Review</label>
                 <textarea
                   value={review}
-                  onChange={(e) => setReview(e.target.value)}
-                  rows={3}
-                  className="w-full px-4 py-3 rounded-lg bg-navy border border-white/20 text-white placeholder-white/40 focus:border-cyan focus:outline-none"
-                  placeholder="How was the session?"
+                  onChange={(event) => setReview(event.target.value)}
+                  rows={4}
+                  className="w-full rounded-[1rem] border border-white/12 bg-white/5 px-4 py-3 text-white placeholder-white/32 outline-none transition focus:border-cyan"
+                  placeholder="How did the session go?"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={rating === 0}
-                className="w-full py-3 rounded-lg bg-teal text-navy font-semibold hover:bg-teal/90 transition-colors disabled:opacity-50"
-              >
-                Submit Rating
-              </button>
+
+              <PrimaryButton type="submit" disabled={rating === 0} className="w-full">
+                Submit rating
+              </PrimaryButton>
             </form>
           )}
-        </div>
+        </GlassPanel>
       </div>
-    </div>
+    </PageShell>
   );
 }

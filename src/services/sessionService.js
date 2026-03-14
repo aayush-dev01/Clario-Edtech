@@ -1,88 +1,129 @@
-import { getSessions, setSessions, generateId } from './localStore';
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  query,
+  setDoc,
+  updateDoc,
+  where,
+} from 'firebase/firestore';
+import { db, serverTimestamp } from './firebase';
+
+const sessionsCollection = collection(db, 'sessions');
+
+function sanitizeSession(snapshot) {
+  if (!snapshot?.exists()) return null;
+  return { id: snapshot.id, ...snapshot.data() };
+}
+
+function sortNewest(items) {
+  return [...items].sort((a, b) => {
+    const aTime = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+    const bTime = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+    return bTime - aTime;
+  });
+}
 
 export async function createSessionRequest(studentId, tutorId, skill, message = '') {
-  const sessions = getSessions();
-  const id = generateId();
-  const session = {
-    id,
+  const sessionRef = doc(sessionsCollection);
+  const safeRoomId = `ClarioSession${sessionRef.id}`.replace(/[^a-zA-Z0-9-_]/g, '');
+  const payload = {
+    id: sessionRef.id,
     studentId,
     tutorId,
+    participantIds: [studentId, tutorId],
     skill,
     message,
     status: 'pending',
-    createdAt: new Date().toISOString(),
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
     scheduledAt: null,
-    jitsiRoomId: null,
+    startedAt: null,
+    completedAt: null,
+    jitsiRoomId: safeRoomId,
   };
-  sessions[id] = session;
-  setSessions(sessions);
-  return session;
+  await setDoc(sessionRef, payload);
+  return { id: sessionRef.id, ...payload };
 }
 
 export async function acceptSession(sessionId, scheduledAt, jitsiRoomId) {
-  const sessions = getSessions();
-  const session = sessions[sessionId];
-  if (!session) return;
-  const safeRoomId = (jitsiRoomId || `ClarioSession${sessionId}`).replace(/[^a-zA-Z0-9-_]/g, '');
-  session.status = 'accepted';
-  session.scheduledAt = scheduledAt || new Date().toISOString();
-  session.jitsiRoomId = safeRoomId;
-  session.updatedAt = new Date().toISOString();
-  setSessions(sessions);
+  await updateDoc(doc(db, 'sessions', sessionId), {
+    status: 'accepted',
+    scheduledAt: scheduledAt || new Date().toISOString(),
+    jitsiRoomId: (jitsiRoomId || `ClarioSession${sessionId}`).replace(/[^a-zA-Z0-9-_]/g, ''),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function rejectSession(sessionId) {
-  const sessions = getSessions();
-  const session = sessions[sessionId];
-  if (!session) return;
-  session.status = 'rejected';
-  session.updatedAt = new Date().toISOString();
-  setSessions(sessions);
+  await updateDoc(doc(db, 'sessions', sessionId), {
+    status: 'rejected',
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function startSession(sessionId) {
-  const sessions = getSessions();
-  const session = sessions[sessionId];
-  if (!session) return;
-  session.status = 'in_progress';
-  session.startedAt = new Date().toISOString();
-  session.updatedAt = new Date().toISOString();
-  setSessions(sessions);
+  await updateDoc(doc(db, 'sessions', sessionId), {
+    status: 'in_progress',
+    startedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function completeSession(sessionId) {
-  const sessions = getSessions();
-  const session = sessions[sessionId];
-  if (!session) return;
-  session.status = 'completed';
-  session.completedAt = new Date().toISOString();
-  session.updatedAt = new Date().toISOString();
-  setSessions(sessions);
+  await updateDoc(doc(db, 'sessions', sessionId), {
+    status: 'completed',
+    completedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+async function listSessionsByField(field, value) {
+  const snapshot = await getDocs(query(sessionsCollection, where(field, '==', value)));
+  return sortNewest(snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() })));
 }
 
 export async function getSessionsForStudent(studentId) {
-  const sessions = getSessions();
-  return Object.values(sessions)
-    .filter((s) => s.studentId === studentId)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return listSessionsByField('studentId', studentId);
 }
 
 export async function getSessionsForTutor(tutorId) {
-  const sessions = getSessions();
-  return Object.values(sessions)
-    .filter((s) => s.tutorId === tutorId)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return listSessionsByField('tutorId', tutorId);
 }
 
 export async function getSessionById(sessionId) {
-  const sessions = getSessions();
-  const session = sessions[sessionId];
-  return session ? { id: session.id, ...session } : null;
+  const snapshot = await getDoc(doc(db, 'sessions', sessionId));
+  return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
 }
 
 export async function getPendingRequestsForTutor(tutorId) {
-  const sessions = getSessions();
-  return Object.values(sessions)
-    .filter((s) => s.tutorId === tutorId && s.status === 'pending')
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const sessions = await listSessionsByField('tutorId', tutorId);
+  return sessions.filter((session) => session.status === 'pending');
+}
+
+export function subscribeSessionById(sessionId, callback) {
+  return onSnapshot(doc(db, 'sessions', sessionId), (snapshot) => {
+    callback(sanitizeSession(snapshot));
+  });
+}
+
+function subscribeSessionsByField(field, value, callback, filterFn = null) {
+  return onSnapshot(query(sessionsCollection, where(field, '==', value)), (snapshot) => {
+    const sessions = sortNewest(snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() })));
+    callback(filterFn ? sessions.filter(filterFn) : sessions);
+  });
+}
+
+export function subscribeSessionsForStudent(studentId, callback) {
+  return subscribeSessionsByField('studentId', studentId, callback);
+}
+
+export function subscribeSessionsForTutor(tutorId, callback) {
+  return subscribeSessionsByField('tutorId', tutorId, callback);
+}
+
+export function subscribePendingRequestsForTutor(tutorId, callback) {
+  return subscribeSessionsByField('tutorId', tutorId, callback, (session) => session.status === 'pending');
 }

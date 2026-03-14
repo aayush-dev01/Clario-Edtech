@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { getPendingRequestsForTutor } from '../services/sessionService';
-import { acceptSession, rejectSession } from '../services/sessionService';
+import { GlassPanel, PageHero, PageShell, PrimaryButton, SecondaryButton, StatusBadge } from '../components/AppShell';
+import { acceptSession, rejectSession, subscribePendingRequestsForTutor } from '../services/sessionService';
 import { getUserById } from '../services/userService';
 
 export default function TutorRequests({ user }) {
@@ -9,23 +9,24 @@ export default function TutorRequests({ user }) {
   const [actioning, setActioning] = useState(null);
 
   useEffect(() => {
-    if (user?.uid) {
-      getPendingRequestsForTutor(user.uid).then(setRequests);
-    }
+    if (!user?.uid) return undefined;
+    return subscribePendingRequestsForTutor(user.uid, setRequests);
   }, [user?.uid]);
 
   useEffect(() => {
-    requests.forEach(async (r) => {
-      const u = await getUserById(r.studentId);
-      if (u) setStudentNames((prev) => ({ ...prev, [r.studentId]: u.displayName }));
+    requests.forEach(async (request) => {
+      if (studentNames[request.studentId]) return;
+      const profile = await getUserById(request.studentId);
+      if (profile) {
+        setStudentNames((current) => ({ ...current, [request.studentId]: profile.displayName }));
+      }
     });
-  }, [requests]);
+  }, [requests, studentNames]);
 
   const handleAccept = async (id) => {
     setActioning(id);
     try {
       await acceptSession(id, null, `ClarioSession${id}`);
-      setRequests((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setActioning(null);
     }
@@ -35,59 +36,55 @@ export default function TutorRequests({ user }) {
     setActioning(id);
     try {
       await rejectSession(id);
-      setRequests((prev) => prev.filter((r) => r.id !== id));
     } finally {
       setActioning(null);
     }
   };
 
   return (
-    <div className="min-h-screen px-6 py-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold text-white mb-2">Session Requests</h1>
-        <p className="text-white/70 mb-8">Accept or reject session requests from students.</p>
+    <PageShell>
+      <PageHero
+        eyebrow="Request queue"
+        title="Review incoming session requests"
+        description="Accepting a request provisions the shared session state immediately so both participants can join from separate devices."
+        aside={<StatusBadge tone="coral">{requests.length} pending</StatusBadge>}
+      />
 
-        <div className="space-y-4">
-          {requests.length === 0 ? (
-            <div className="bg-white/5 rounded-xl p-12 text-center border border-white/10">
-              <p className="text-white/70">No pending requests.</p>
-            </div>
-          ) : (
-            requests.map((r) => (
-              <div
-                key={r.id}
-                className="bg-white/5 rounded-xl p-6 border border-white/10"
-              >
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{r.skill}</h3>
-                    <p className="text-white/60">{studentNames[r.studentId] || 'Student'}</p>
-                    {r.message && (
-                      <p className="text-white/80 text-sm mt-2 italic">&quot;{r.message}&quot;</p>
-                    )}
+      <div className="space-y-5">
+        {requests.length === 0 ? (
+          <GlassPanel className="py-16 text-center">
+            <p className="text-lg text-white/70">No pending requests.</p>
+          </GlassPanel>
+        ) : (
+          requests.map((request) => (
+            <GlassPanel key={request.id} className="border-white/12">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                <div className="max-w-2xl">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-2xl font-semibold text-white">{request.skill}</h3>
+                    <StatusBadge tone="coral">pending</StatusBadge>
                   </div>
+                  <p className="mt-2 text-white/58">{studentNames[request.studentId] || 'Student'}</p>
+                  {request.message ? (
+                    <p className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/5 px-4 py-3 text-sm italic leading-7 text-white/72">
+                      "{request.message}"
+                    </p>
+                  ) : null}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleAccept(r.id)}
-                    disabled={actioning === r.id}
-                    className="flex-1 py-2 rounded-lg bg-teal text-navy font-medium hover:bg-teal/90 transition-colors disabled:opacity-50"
-                  >
-                    {actioning === r.id ? 'Accepting...' : 'Accept'}
-                  </button>
-                  <button
-                    onClick={() => handleReject(r.id)}
-                    disabled={actioning === r.id}
-                    className="flex-1 py-2 rounded-lg bg-coral/20 text-coral font-medium hover:bg-coral/30 transition-colors disabled:opacity-50"
-                  >
+
+                <div className="flex gap-3">
+                  <PrimaryButton onClick={() => handleAccept(request.id)} disabled={actioning === request.id}>
+                    {actioning === request.id ? 'Accepting...' : 'Accept'}
+                  </PrimaryButton>
+                  <SecondaryButton onClick={() => handleReject(request.id)} disabled={actioning === request.id} className="border-coral/20 bg-coral/12 text-coral hover:bg-coral/18">
                     Reject
-                  </button>
+                  </SecondaryButton>
                 </div>
               </div>
-            ))
-          )}
-        </div>
+            </GlassPanel>
+          ))
+        )}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -1,27 +1,26 @@
-import { getRatings, setRatings, generateId } from './localStore';
+import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
+import { db, serverTimestamp } from './firebase';
 
 export async function addRating(sessionId, raterId, tutorId, rating, review = '') {
-  const ratings = getRatings();
-  const id = generateId();
-  ratings[id] = {
+  const ratingRef = doc(db, 'ratings', `${sessionId}_${raterId}`);
+  await setDoc(ratingRef, {
     sessionId,
     raterId,
     tutorId,
     rating,
     review,
-    createdAt: new Date().toISOString(),
-  };
-  setRatings(ratings);
+    createdAt: serverTimestamp(),
+  });
 }
 
 export async function getRatingsForTutor(tutorId) {
-  const ratings = getRatings();
-  const list = Object.values(ratings).filter((r) => r.tutorId === tutorId);
-  if (list.length === 0) return { average: 0, count: 0, ratings: [] };
-  const sum = list.reduce((a, r) => a + r.rating, 0);
+  const snapshot = await getDocs(query(collection(db, 'ratings'), where('tutorId', '==', tutorId)));
+  const ratings = snapshot.docs.map((docSnapshot) => ({ id: docSnapshot.id, ...docSnapshot.data() }));
+  if (ratings.length === 0) return { average: 0, count: 0, ratings: [] };
+  const sum = ratings.reduce((total, entry) => total + entry.rating, 0);
   return {
-    average: Math.round((sum / list.length) * 10) / 10,
-    count: list.length,
-    ratings: list,
+    average: Math.round((sum / ratings.length) * 10) / 10,
+    count: ratings.length,
+    ratings,
   };
 }

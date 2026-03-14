@@ -7,7 +7,7 @@ A peer-to-peer skill learning platform for college communities. Students can tea
 - **React + Vite** - Frontend
 - **TailwindCSS** - Styling
 - **React Router** - Navigation
-- **localStorage** - Auth & data (no backend required)
+- **Firebase Auth + Firestore** - Shared auth and cross-device data
 - **Jitsi Meet** - Video sessions
 - **Three.js** - 3D skill map
 
@@ -18,7 +18,13 @@ A peer-to-peer skill learning platform for college communities. Students can tea
    npm install
    ```
 
-2. **Run development server**
+2. **Configure Firebase env vars**
+   Copy `.env.example` into `.env` and fill in your Firebase project values.
+
+3. **Enable Firebase services**
+   Turn on Email/Password auth in Firebase Authentication and apply the included `firestore.rules` in your Firestore project.
+
+4. **Run development server**
    ```bash
    npm run dev
    ```

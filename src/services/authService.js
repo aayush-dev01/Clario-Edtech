@@ -1,53 +1,110 @@
-import { getUsers, setUsers, getCurrentUser, setCurrentUser, generateId } from './localStore';
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  updateProfile,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, serverTimestamp } from './firebase';
+
+const PROFILE_CACHE_KEY = 'clario_profile_cache';
+
+function readCachedProfile() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function getCachedProfile() {
+  return readCachedProfile();
+}
+
+function cacheProfile(profile) {
+  if (typeof window === 'undefined' || !profile) return;
+  window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(profile));
+}
+
+function clearCachedProfile() {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(PROFILE_CACHE_KEY);
+}
+
+function mapAuthUser(user) {
+  if (!user) return null;
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || user.email,
+  };
+}
 
 export async function register(email, password, displayName, role = 'student') {
-  const users = getUsers();
-  const existing = Object.values(users).find((u) => u.email === email);
-  if (existing) throw new Error('Email already registered');
-  const uid = generateId();
-  const user = { uid, email, displayName, role };
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  await updateProfile(credential.user, { displayName });
+
   const profile = {
-    id: uid,
     email,
-    password,
     displayName,
     role,
-    skills: role === 'tutor' ? [] : [],
-    createdAt: new Date().toISOString(),
+    skills: [],
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
   };
-  users[uid] = profile;
-  setUsers(users);
-  setCurrentUser({ ...user });
-  window.dispatchEvent(new CustomEvent('clario:authchange'));
-  return user;
+
+  await setDoc(doc(db, 'users', credential.user.uid), profile);
+  cacheProfile({ id: credential.user.uid, ...profile, createdAt: null, updatedAt: null });
+
+  return mapAuthUser(auth.currentUser);
 }
 
 export async function login(email, password) {
-  const users = getUsers();
-  const profile = Object.values(users).find((u) => u.email === email);
-  if (!profile || profile.password !== password) throw new Error('Invalid email or password');
-  const user = { uid: profile.id, email: profile.email, displayName: profile.displayName };
-  setCurrentUser(user);
-  window.dispatchEvent(new CustomEvent('clario:authchange'));
-  return user;
+  const credential = await signInWithEmailAndPassword(auth, email, password);
+  const profile = await getUserProfile(credential.user.uid);
+  if (profile) {
+    cacheProfile(profile);
+  }
+  return mapAuthUser(credential.user);
 }
 
 export async function signOut() {
-  setCurrentUser(null);
-  window.dispatchEvent(new CustomEvent('clario:authchange'));
+  await firebaseSignOut(auth);
+  clearCachedProfile();
 }
 
 export function onAuthChange(callback) {
-  const notify = () => callback(getCurrentUser());
-  notify();
-  window.addEventListener('clario:authchange', notify);
-  return () => window.removeEventListener('clario:authchange', notify);
+  return onAuthStateChanged(auth, (user) => {
+    callback(mapAuthUser(user));
+  });
 }
 
 export async function getUserProfile(uid) {
-  const users = getUsers();
-  const profile = users[uid] || null;
-  if (!profile) return null;
-  const { password: _, ...safe } = profile;
-  return { id: profile.id, ...safe };
+  if (!uid) return null;
+  const snapshot = await getDoc(doc(db, 'users', uid));
+  if (snapshot.exists()) {
+    const profile = { id: snapshot.id, ...snapshot.data() };
+    cacheProfile(profile);
+    return profile;
+  }
+
+  const cached = readCachedProfile();
+  if (cached?.id === uid) return cached;
+
+  const currentUser = auth.currentUser;
+  if (!currentUser || currentUser.uid !== uid) return null;
+
+  const fallbackProfile = {
+    id: uid,
+    email: currentUser.email,
+    displayName: currentUser.displayName || currentUser.email,
+    role: cached?.role || null,
+    skills: cached?.skills || [],
+  };
+
+  cacheProfile(fallbackProfile);
+  return fallbackProfile;
 }

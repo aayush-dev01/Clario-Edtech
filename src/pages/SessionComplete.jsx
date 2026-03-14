@@ -1,29 +1,40 @@
-import { useParams, Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
+import { GlassPanel, PageHero, PageShell, StatusBadge } from '../components/AppShell';
 
 export default function SessionComplete() {
   const { sessionId } = useParams();
 
   return (
-    <div className="min-h-screen px-6 py-8 flex items-center justify-center">
-      <div className="max-w-md w-full text-center">
-        <div className="bg-white/5 rounded-xl p-8 border border-white/10">
-          <div className="text-5xl mb-4">✓</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Session Complete</h1>
-          <p className="text-white/70 mb-6">Thanks for learning with Clario!</p>
-          <Link
-            to={`/session/rate/${sessionId}`}
-            className="block w-full py-3 rounded-xl bg-teal text-navy font-semibold hover:bg-teal/90 transition-colors mb-3"
-          >
-            Rate this session
-          </Link>
-          <Link
-            to="/"
-            className="block w-full py-3 rounded-xl border border-white/20 text-white/80 hover:bg-white/5 transition-colors"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
+    <PageShell className="flex items-center">
+      <div className="mx-auto w-full max-w-2xl">
+        <PageHero
+          eyebrow="Session complete"
+          title="The session has ended"
+          description="Close the loop with feedback or head back to your dashboard to keep momentum going."
+          aside={<StatusBadge tone="teal">complete</StatusBadge>}
+        />
+
+        <GlassPanel className="text-center">
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-teal/20 bg-teal/12 text-4xl text-teal">
+            ✓
+          </div>
+          <p className="mt-6 text-lg text-white/70">Thanks for learning with Clario.</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link
+              to={`/session/rate/${sessionId}`}
+              className="flex-1 rounded-[1.1rem] bg-teal px-5 py-3 font-semibold text-navy transition hover:bg-teal/90"
+            >
+              Rate this session
+            </Link>
+            <Link
+              to="/"
+              className="flex-1 rounded-[1.1rem] border border-white/14 bg-white/6 px-5 py-3 font-medium text-white/86 transition hover:bg-white/10"
+            >
+              Back to dashboard
+            </Link>
+          </div>
+        </GlassPanel>
       </div>
-    </div>
+    </PageShell>
   );
 }
