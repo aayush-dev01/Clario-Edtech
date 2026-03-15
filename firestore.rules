@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    function isSessionParticipant() {
+      return isSignedIn() &&
+        (resource.data.studentId == request.auth.uid || resource.data.tutorId == request.auth.uid);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+    }
+
+    match /sessions/{sessionId} {
+      allow read: if isSessionParticipant();
+      allow create: if isSignedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update: if isSessionParticipant();
+    }
+
+    match /sessions/{sessionId}/{document=**} {
+      allow read, write: if isSignedIn() &&
+        (get(/databases/$(database)/documents/sessions/$(sessionId)).data.studentId == request.auth.uid ||
+          get(/databases/$(database)/documents/sessions/$(sessionId)).data.tutorId == request.auth.uid);
+    }
+
+    match /messages/{sessionId}/{document=**} {
+      allow read, write: if isSignedIn() &&
+        (get(/databases/$(database)/documents/sessions/$(sessionId)).data.studentId == request.auth.uid ||
+          get(/databases/$(database)/documents/sessions/$(sessionId)).data.tutorId == request.auth.uid);
+    }
+
+    match /ratings/{ratingId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn() && request.resource.data.raterId == request.auth.uid;
+    }
+  }
+}

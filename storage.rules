@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSessionParticipant(sessionId) {
+      return isSignedIn() &&
+        (firestore.get(/databases/(default)/documents/sessions/$(sessionId)).data.studentId == request.auth.uid ||
+          firestore.get(/databases/(default)/documents/sessions/$(sessionId)).data.tutorId == request.auth.uid);
+    }
+
+    match /sessionChats/{sessionId}/{fileName} {
+      allow read, write: if isSessionParticipant(sessionId);
+    }
+  }
+}
